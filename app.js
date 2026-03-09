@@ -726,9 +726,15 @@ undoButton.addEventListener("click", () => {
 });
 
 resetButton.addEventListener("click", () => {
-  if (!canResetEditor()) return;
+  if (!canResetEditor()) {
+    clearGridValidationError();
+    clearStatusMessage();
+    syncUi();
+    return;
+  }
   finishStroke();
   pushUndoSnapshot();
+  textInput.value = "";
   gridCols = DEFAULT_COLS;
   gridRows = DEFAULT_ROWS;
   fontModeSelect.value = DEFAULT_FONT_MODE;
@@ -748,13 +754,9 @@ resetButton.addEventListener("click", () => {
   lastAutoApplySignature = "";
   clearGridValidationError();
   renderGrid();
-  if (normalizeGeneratorText(textInput.value)) {
-    applyCurrentGeneratorState({ skipUndo: true });
-  } else {
-    persistLevels();
-    renderAllCells();
-    syncUi();
-  }
+  persistLevels();
+  renderAllCells();
+  syncUi();
   clearStatusMessage();
 });
 
@@ -1103,6 +1105,7 @@ function canResetEditor() {
     || noiseSeed !== 0
     || gridCols !== DEFAULT_COLS
     || gridRows !== DEFAULT_ROWS
+    || Boolean(normalizeGeneratorText(textInput.value))
     || fontModeSelect.value !== DEFAULT_FONT_MODE
     || weightModeSelect.value !== DEFAULT_WEIGHT_MODE
     || Boolean(threeDModeInput.checked)
@@ -1859,7 +1862,7 @@ function escapeXml(value) {
 
 function syncUi() {
   undoButton.disabled = undoStack.length === 0;
-  resetButton.disabled = !canResetEditor();
+  resetButton.disabled = false;
 }
 
 function flashStatus(message) {
@@ -1927,11 +1930,11 @@ function applyInitialTextFromUrl() {
     syncSizeInputs();
   }
   if (!initialText) {
-    applyCurrentGeneratorState();
+    applyCurrentGeneratorState({ skipUndo: true });
     return;
   }
   textInput.value = initialText;
-  applyCurrentGeneratorState();
+  applyCurrentGeneratorState({ skipUndo: true });
 }
 
 function selectAllTextInput() {

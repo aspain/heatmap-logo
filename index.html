@@ -85,7 +85,7 @@
                   <span class="depth-toggle">
                     <input id="threeDModeInput" class="depth-toggle-input" name="threeDMode" type="checkbox" />
                     <span class="depth-toggle-copy">
-                      <span class="depth-toggle-title">3D left shade</span>
+                      <span class="depth-toggle-title">3D effect</span>
                     </span>
                   </span>
                 </label>
@@ -101,9 +101,9 @@
                     </label>
                   </div>
                 </div>
-                <button id="undoButton" class="action-button field-action" type="button">Undo</button>
+                <button id="undoButton" class="action-button field-action" type="button" disabled>Undo</button>
                 <button id="resetButton" class="action-button field-action" type="button">Reset</button>
-                <button id="randomNoiseButton" class="action-button field-action" type="button">Random Noise</button>
+                <button id="randomNoiseButton" class="action-button field-action" type="button">Add Commits</button>
                 <button id="exportButton" class="action-button action-button-primary field-action" type="button">Export</button>
               </div>
               <div class="status-row">
@@ -117,7 +117,7 @@
         <div class="control-footer">
           <div class="control-card legend-card">
             <div class="legend" aria-label="Contribution level legend">
-              <p class="section-label legend-label">Levels</p>
+              <p class="section-label legend-label">Commit Levels</p>
               <div id="legendSwatches" class="legend-swatches"></div>
             </div>
             <ul class="help-list" aria-label="Editing instructions">
@@ -126,7 +126,7 @@
               <li>Click and drag to paint continuously</li>
               <li><kbd>Shift</kbd> + click paints max intensity</li>
               <li><kbd>Shift</kbd> + right-click clears cells</li>
-              <li><code>Random Noise</code> fills non-letter cells</li>
+              <li><code>Add Commits</code> fills non-letter cells</li>
             </ul>
           </div>
         </div>
