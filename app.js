@@ -1,6 +1,6 @@
 const DEFAULT_COLS = 186;
 const DEFAULT_ROWS = 24;
-const DEFAULT_FONT_MODE = "pixel";
+const DEFAULT_FONT_MODE = "arial";
 const DEFAULT_WEIGHT_MODE = "regular";
 const MIN_COLS = 20;
 const MAX_COLS = 400;
@@ -24,36 +24,36 @@ const TEXT_PADDING_X = 10;
 const TEXT_PADDING_Y = 3;
 const TEXT_RASTER_SCALE = 4;
 const FONT_OPTIONS = Object.freeze({
-  pixel: Object.freeze({ label: "Pixel", family: "" }),
   arial: Object.freeze({ label: "Arial", family: "Arial, Helvetica, sans-serif" }),
   "arial-black": Object.freeze({ label: "Arial Black", family: "\"Arial Black\", Gadget, sans-serif" }),
-  helvetica: Object.freeze({ label: "Helvetica", family: "Helvetica, Arial, sans-serif" }),
-  verdana: Object.freeze({ label: "Verdana", family: "Verdana, Geneva, sans-serif" }),
-  tahoma: Object.freeze({ label: "Tahoma", family: "Tahoma, Geneva, sans-serif" }),
-  trebuchet: Object.freeze({ label: "Trebuchet MS", family: "\"Trebuchet MS\", Tahoma, sans-serif" }),
-  "gill-sans": Object.freeze({ label: "Gill Sans", family: "\"Gill Sans\", \"Gill Sans MT\", Calibri, sans-serif" }),
-  "lucida-sans": Object.freeze({ label: "Lucida Sans", family: "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif" }),
-  "franklin-gothic": Object.freeze({ label: "Franklin Gothic", family: "\"Franklin Gothic Medium\", \"Arial Narrow\", Arial, sans-serif" }),
   "avenir-next": Object.freeze({ label: "Avenir Next", family: "\"Avenir Next\", Avenir, \"Segoe UI\", sans-serif" }),
-  optima: Object.freeze({ label: "Optima", family: "Optima, Candara, \"Noto Sans\", sans-serif" }),
-  georgia: Object.freeze({ label: "Georgia", family: "Georgia, serif" }),
-  times: Object.freeze({ label: "Times New Roman", family: "\"Times New Roman\", Times, serif" }),
-  palatino: Object.freeze({ label: "Palatino", family: "\"Palatino Linotype\", Palatino, serif" }),
-  didot: Object.freeze({ label: "Didot", family: "Didot, \"Bodoni 72\", serif" }),
-  rockwell: Object.freeze({ label: "Rockwell", family: "Rockwell, \"Roboto Slab\", serif" }),
-  courier: Object.freeze({ label: "Courier New", family: "\"Courier New\", Courier, monospace" }),
-  impact: Object.freeze({ label: "Impact", family: "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif" }),
-  "racing-sans": Object.freeze({ label: "Racing Sans One", family: "\"Racing Sans One\", \"Arial Black\", Impact, sans-serif" }),
-  "wide-latin": Object.freeze({ label: "Wide Latin", family: "\"Wide Latin\", \"Copperplate Gothic Bold\", serif" }),
-  oswald: Object.freeze({ label: "Oswald", family: "Oswald, \"Arial Narrow\", sans-serif" }),
-  "futura-condensed": Object.freeze({ label: "Futura Condensed", family: "\"Futura Condensed Extra Bold\", Futura, \"Arial Narrow\", sans-serif" }),
   "bank-gothic": Object.freeze({ label: "Bank Gothic", family: "\"Bank Gothic\", \"Eurostile Extended\", Impact, sans-serif" }),
-  eurostile: Object.freeze({ label: "Eurostile", family: "Eurostile, \"Microgramma D Extended\", sans-serif" }),
-  phosphate: Object.freeze({ label: "Phosphate", family: "Phosphate, \"Arial Black\", Impact, sans-serif" }),
-  copperplate: Object.freeze({ label: "Copperplate", family: "Copperplate, \"Copperplate Gothic Light\", serif" }),
-  stencil: Object.freeze({ label: "Stencil", family: "Stencil, \"Stencil Std\", Impact, sans-serif" }),
   "brush-script": Object.freeze({ label: "Brush Script", family: "\"Brush Script MT\", \"Segoe Script\", cursive" }),
+  copperplate: Object.freeze({ label: "Copperplate", family: "Copperplate, \"Copperplate Gothic Light\", serif" }),
+  courier: Object.freeze({ label: "Courier New", family: "\"Courier New\", Courier, monospace" }),
+  didot: Object.freeze({ label: "Didot", family: "Didot, \"Bodoni 72\", serif" }),
+  eurostile: Object.freeze({ label: "Eurostile", family: "Eurostile, \"Microgramma D Extended\", sans-serif" }),
+  "franklin-gothic": Object.freeze({ label: "Franklin Gothic", family: "\"Franklin Gothic Medium\", \"Arial Narrow\", Arial, sans-serif" }),
+  "futura-condensed": Object.freeze({ label: "Futura Condensed", family: "\"Futura Condensed Extra Bold\", Futura, \"Arial Narrow\", sans-serif" }),
+  georgia: Object.freeze({ label: "Georgia", family: "Georgia, serif" }),
+  "gill-sans": Object.freeze({ label: "Gill Sans", family: "\"Gill Sans\", \"Gill Sans MT\", Calibri, sans-serif" }),
+  helvetica: Object.freeze({ label: "Helvetica", family: "Helvetica, Arial, sans-serif" }),
+  impact: Object.freeze({ label: "Impact", family: "Impact, Haettenschweiler, \"Arial Narrow Bold\", sans-serif" }),
+  "lucida-sans": Object.freeze({ label: "Lucida Sans", family: "\"Lucida Sans Unicode\", \"Lucida Grande\", sans-serif" }),
+  optima: Object.freeze({ label: "Optima", family: "Optima, Candara, \"Noto Sans\", sans-serif" }),
+  oswald: Object.freeze({ label: "Oswald", family: "Oswald, \"Arial Narrow\", sans-serif" }),
+  palatino: Object.freeze({ label: "Palatino", family: "\"Palatino Linotype\", Palatino, serif" }),
+  phosphate: Object.freeze({ label: "Phosphate", family: "Phosphate, \"Arial Black\", Impact, sans-serif" }),
+  pixel: Object.freeze({ label: "Pixel", family: "" }),
+  "racing-sans": Object.freeze({ label: "Racing Sans One", family: "\"Racing Sans One\", \"Arial Black\", Impact, sans-serif" }),
+  rockwell: Object.freeze({ label: "Rockwell", family: "Rockwell, \"Roboto Slab\", serif" }),
+  stencil: Object.freeze({ label: "Stencil", family: "Stencil, \"Stencil Std\", Impact, sans-serif" }),
   "system-ui": Object.freeze({ label: "System UI", family: "system-ui, sans-serif" }),
+  tahoma: Object.freeze({ label: "Tahoma", family: "Tahoma, Geneva, sans-serif" }),
+  times: Object.freeze({ label: "Times New Roman", family: "\"Times New Roman\", Times, serif" }),
+  trebuchet: Object.freeze({ label: "Trebuchet MS", family: "\"Trebuchet MS\", Tahoma, sans-serif" }),
+  verdana: Object.freeze({ label: "Verdana", family: "Verdana, Geneva, sans-serif" }),
+  "wide-latin": Object.freeze({ label: "Wide Latin", family: "\"Wide Latin\", \"Copperplate Gothic Bold\", serif" }),
 });
 const BITMAP_FONT = Object.freeze({
   " ": Object.freeze([
