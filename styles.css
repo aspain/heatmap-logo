@@ -26,8 +26,8 @@
   --grid-pad-right: 4px;
   --grid-pad-bottom: 4px;
   --grid-pad-left: 4px;
-  --grid-cols: 186;
-  --grid-rows: 24;
+  --grid-cols: 185;
+  --grid-rows: 30;
   --radius: 14px;
   --shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
@@ -62,8 +62,36 @@ kbd {
 .app {
   width: min(100%, 1180px);
   margin: 0 auto;
+  min-height: calc(100vh - 24px);
   display: grid;
   gap: 32px;
+}
+
+.app-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-bottom: 4px;
+  text-align: center;
+}
+
+.footer-link {
+  font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+  transition: color 0.15s ease, text-shadow 0.15s ease;
+}
+
+.footer-link:hover,
+.footer-link:focus-visible {
+  color: var(--accent);
+  text-shadow: 0 0 18px rgba(1, 205, 254, 0.22);
+}
+
+.footer-link:focus-visible {
+  outline: none;
 }
 
 .panel {
@@ -77,6 +105,13 @@ kbd {
 .intro-panel,
 .control-panel {
   padding: var(--panel-pad);
+}
+
+.intro-panel {
+  display: grid;
+  gap: 1px;
+  padding-top: 15px;
+  padding-bottom: 10px;
 }
 
 .editor-panel {
@@ -105,14 +140,14 @@ kbd {
 h1 {
   margin: 0;
   font-size: clamp(22px, 3vw, 30px);
-  line-height: 0.98;
+  line-height: 0.95;
 }
 
 .intro-copy {
-  margin: 8px 0 0;
+  margin: -1px 0 0;
   max-width: none;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.06;
   font-size: 12px;
 }
 
@@ -338,6 +373,73 @@ h1 {
 .field-action {
   min-width: 0;
   width: 100%;
+}
+
+.export-split {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: stretch;
+}
+
+.export-button-main,
+.export-button-toggle {
+  width: 100%;
+}
+
+.export-button-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.export-button-toggle {
+  padding-inline: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left-color: rgba(148, 163, 184, 0.18);
+  font-size: 11px;
+}
+
+.export-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 132px;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    rgba(15, 23, 42, 0.96);
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+  z-index: 20;
+}
+
+.export-menu[hidden] {
+  display: none;
+}
+
+.export-menu-item {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.export-menu-item:hover,
+.export-menu-item:focus-visible {
+  outline: none;
+  border-color: rgba(1, 205, 254, 0.36);
+  background: rgba(1, 205, 254, 0.08);
 }
 
 .depth-toggle-input {

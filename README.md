@@ -4,7 +4,7 @@
 
 # heatmap-logo
 
-Create GitHub heatmap contribution-style text logos with live editing, commit levels, 3D effects, and SVG export.
+Generate GitHub contribution heatmap-style logos from text, mouse drawing, or both.
 
 Live tool: [adamspain.com/heatmap-logo](https://adamspain.com/heatmap-logo/)
 

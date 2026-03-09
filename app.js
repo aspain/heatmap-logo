@@ -1,5 +1,5 @@
-const DEFAULT_COLS = 186;
-const DEFAULT_ROWS = 24;
+const DEFAULT_COLS = 185;
+const DEFAULT_ROWS = 30;
 const DEFAULT_FONT_MODE = "arial";
 const DEFAULT_WEIGHT_MODE = "regular";
 const MIN_COLS = 20;
@@ -665,7 +665,12 @@ const gridHeightInput = document.getElementById("gridHeightInput");
 const undoButton = document.getElementById("undoButton");
 const resetButton = document.getElementById("resetButton");
 const randomNoiseButton = document.getElementById("randomNoiseButton");
+const exportSplit = document.getElementById("exportSplit");
 const exportButton = document.getElementById("exportButton");
+const exportMenuButton = document.getElementById("exportMenuButton");
+const exportMenu = document.getElementById("exportMenu");
+const exportSvgButton = document.getElementById("exportSvgButton");
+const exportPngButton = document.getElementById("exportPngButton");
 const paintStats = document.getElementById("paintStats");
 const statusMessage = document.getElementById("statusMessage");
 const gridValidationMessage = document.getElementById("gridValidationMessage");
@@ -691,6 +696,7 @@ let lastRenderedFromGenerator = loadedState.lastRenderedFromGenerator;
 let resizeSession = null;
 let lastGeneratorFailure = "";
 let lastGeneratorLayout = null;
+let exportMenuOpen = false;
 
 renderLegend();
 renderGrid();
@@ -715,6 +721,8 @@ window.addEventListener("pointermove", updateResizeSession);
 window.addEventListener("pointerup", endResizeSession);
 window.addEventListener("pointercancel", endResizeSession);
 window.addEventListener("blur", endResizeSession);
+window.addEventListener("keydown", handleExportMenuKeydown);
+window.addEventListener("pointerdown", handleExportMenuPointerdown);
 
 resizeHandle.addEventListener("pointerdown", beginResizeSession);
 
@@ -765,17 +773,21 @@ randomNoiseButton.addEventListener("click", () => {
 });
 
 exportButton.addEventListener("click", () => {
-  const svg = buildSvg();
-  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "heatmap-logo.svg";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  clearStatusMessage();
+  exportSvg();
+});
+
+exportMenuButton.addEventListener("click", () => {
+  toggleExportMenu();
+});
+
+exportSvgButton.addEventListener("click", () => {
+  closeExportMenu();
+  exportSvg();
+});
+
+exportPngButton.addEventListener("click", async () => {
+  closeExportMenu();
+  await exportPng();
 });
 
 function normalizeAccentColor(value) {
@@ -1683,6 +1695,42 @@ function buildBitmapTextLevels(text, glyphSpacing, weightMode, contentSignature)
   return layout;
 }
 
+function measureTextCoverage(metrics) {
+  return {
+    width: Math.ceil(metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight),
+    height: Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent),
+  };
+}
+
+function measureTextAdvance(metrics) {
+  if (Number.isFinite(metrics.width)) {
+    return metrics.width;
+  }
+  return metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight;
+}
+
+function snapToRaster(value) {
+  return Math.round(value / TEXT_RASTER_SCALE) * TEXT_RASTER_SCALE;
+}
+
+function canUseDeterministicGlyphPlacement(option) {
+  return !/\bcursive\b/i.test(option.family);
+}
+
+function renderDeterministicGlyphRun(ctx, text, originX, baselineY) {
+  const characters = Array.from(text);
+  let prefixText = "";
+
+  characters.forEach((character) => {
+    const advanceBefore = prefixText
+      ? measureTextAdvance(ctx.measureText(prefixText))
+      : 0;
+    const drawX = snapToRaster(originX + advanceBefore);
+    ctx.fillText(character, drawX, baselineY);
+    prefixText += character;
+  });
+}
+
 function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize = Number.POSITIVE_INFINITY) {
   const option = FONT_OPTIONS[fontMode] || FONT_OPTIONS.arial;
   const fontWeight = weightMode === "bold" ? 700 : 400;
@@ -1721,8 +1769,7 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
     }
     ctx.font = `${fontWeight} ${fontSize}px ${option.family}`;
     const metrics = ctx.measureText(text);
-    const width = Math.ceil(metrics.actualBoundingBoxLeft + metrics.actualBoundingBoxRight);
-    const height = Math.ceil(metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent);
+    const { width, height } = measureTextCoverage(metrics);
     if (width <= availableWidthPx && height <= availableHeightPx) {
       bestSize = fontSize;
       bestMetrics = metrics;
@@ -1738,15 +1785,20 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#ffffff";
-  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.font = `${fontWeight} ${bestSize}px ${option.family}`;
 
-  const textWidth = Math.ceil(bestMetrics.actualBoundingBoxLeft + bestMetrics.actualBoundingBoxRight);
-  const textHeight = Math.ceil(bestMetrics.actualBoundingBoxAscent + bestMetrics.actualBoundingBoxDescent);
+  const { height: textHeight } = measureTextCoverage(bestMetrics);
+  const textAdvance = measureTextAdvance(bestMetrics);
   const centerX = padLeftPx + Math.floor(availableWidthPx / 2);
   const baselineY = padTopPx + Math.floor((availableHeightPx - textHeight) / 2) + Math.ceil(bestMetrics.actualBoundingBoxAscent);
-  ctx.fillText(text, centerX, baselineY);
+  if (canUseDeterministicGlyphPlacement(option)) {
+    ctx.textAlign = "left";
+    renderDeterministicGlyphRun(ctx, text, centerX - (textAdvance / 2), baselineY);
+  } else {
+    ctx.textAlign = "center";
+    ctx.fillText(text, centerX, baselineY);
+  }
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const nextLevels = Array(totalCells()).fill(0);
@@ -1814,6 +1866,108 @@ function persistLevels() {
   return;
 }
 
+function setExportMenuOpen(nextOpen) {
+  exportMenuOpen = nextOpen;
+  exportMenu.hidden = !nextOpen;
+  exportMenuButton.setAttribute("aria-expanded", String(nextOpen));
+}
+
+function closeExportMenu() {
+  setExportMenuOpen(false);
+}
+
+function openExportMenu() {
+  setExportMenuOpen(true);
+}
+
+function toggleExportMenu() {
+  if (exportMenuOpen) {
+    closeExportMenu();
+  } else {
+    openExportMenu();
+  }
+}
+
+function handleExportMenuKeydown(event) {
+  if (event.key === "Escape" && exportMenuOpen) {
+    closeExportMenu();
+    exportMenuButton.focus();
+  }
+}
+
+function handleExportMenuPointerdown(event) {
+  if (!exportMenuOpen) return;
+  if (exportSplit?.contains(event.target)) return;
+  closeExportMenu();
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function exportSvg() {
+  const svg = buildSvg();
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  downloadBlob(blob, "heatmap-logo.svg");
+  clearStatusMessage();
+}
+
+async function exportPng() {
+  try {
+    const { width, height } = buildExportDimensions();
+    const svg = buildSvg();
+    const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+
+    try {
+      const image = await loadImage(svgUrl);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        throw new Error("Could not initialize PNG exporter.");
+      }
+      ctx.drawImage(image, 0, 0, width, height);
+      const pngBlob = await canvasToBlob(canvas, "image/png");
+      downloadBlob(pngBlob, "heatmap-logo.png");
+      clearStatusMessage();
+    } finally {
+      URL.revokeObjectURL(svgUrl);
+    }
+  } catch (error) {
+    flashStatus(error instanceof Error ? error.message : "PNG export failed.");
+  }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("PNG export failed."));
+    image.src = src;
+  });
+}
+
+function canvasToBlob(canvas, type) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("PNG export failed."));
+        return;
+      }
+      resolve(blob);
+    }, type);
+  });
+}
+
 function loadState() {
   return {
     cols: DEFAULT_COLS,
@@ -1827,9 +1981,14 @@ function loadState() {
   };
 }
 
-function buildSvg() {
+function buildExportDimensions() {
   const width = GRID_PAD.left + GRID_PAD.right + (gridCols * CELL_SIZE) + ((gridCols - 1) * CELL_GAP);
   const height = GRID_PAD.top + GRID_PAD.bottom + (gridRows * CELL_SIZE) + ((gridRows - 1) * CELL_GAP);
+  return { width, height };
+}
+
+function buildSvg() {
+  const { width, height } = buildExportDimensions();
   const rects = [];
 
   for (let index = 0; index < totalCells(); index += 1) {
