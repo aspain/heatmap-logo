@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no,email=no,address=no,date=no" />
+    <title>heatmap-logo builder</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel intro-panel">
+        <p class="eyebrow">Local Tool</p>
+        <h1>heatmap-logo builder</h1>
+        <p class="intro-copy">Live text preview on a dense 186 x 24 heatmap grid with optional 3D shading and SVG export.</p>
+      </section>
+
+      <section class="panel control-panel" aria-label="Editor controls">
+        <section id="textForm" class="text-generator" aria-label="Text to heatmap generator">
+          <div class="control-layout">
+            <div class="control-card control-card-main">
+              <label class="control-stack control-stack-text" for="textInput">
+                <span class="section-label">Text</span>
+                <input
+                  id="textInput"
+                  class="text-input"
+                  name="text"
+                  type="text"
+                  inputmode="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  maxlength="32"
+                  value="sample text"
+                  placeholder="sample text"
+                />
+              </label>
+              <div class="main-control-grid">
+                <label class="case-select-wrap control-font-wrap" for="fontModeSelect">
+                  <span class="case-select-label">Font</span>
+                  <select id="fontModeSelect" class="case-select" name="fontMode">
+                    <option value="pixel" selected>Pixel</option>
+                    <option value="arial">Arial</option>
+                    <option value="arial-black">Arial Black</option>
+                    <option value="helvetica">Helvetica</option>
+                    <option value="verdana">Verdana</option>
+                    <option value="tahoma">Tahoma</option>
+                    <option value="trebuchet">Trebuchet MS</option>
+                    <option value="gill-sans">Gill Sans</option>
+                    <option value="lucida-sans">Lucida Sans</option>
+                    <option value="franklin-gothic">Franklin Gothic</option>
+                    <option value="avenir-next">Avenir Next</option>
+                    <option value="optima">Optima</option>
+                    <option value="georgia">Georgia</option>
+                    <option value="times">Times New Roman</option>
+                    <option value="palatino">Palatino</option>
+                    <option value="didot">Didot</option>
+                    <option value="rockwell">Rockwell</option>
+                    <option value="courier">Courier New</option>
+                    <option value="impact">Impact</option>
+                    <option value="racing-sans">Racing Sans One</option>
+                    <option value="wide-latin">Wide Latin</option>
+                    <option value="oswald">Oswald</option>
+                    <option value="futura-condensed">Futura Condensed</option>
+                    <option value="bank-gothic">Bank Gothic</option>
+                    <option value="eurostile">Eurostile</option>
+                    <option value="phosphate">Phosphate</option>
+                    <option value="copperplate">Copperplate</option>
+                    <option value="stencil">Stencil</option>
+                    <option value="brush-script">Brush Script</option>
+                    <option value="system-ui">System UI</option>
+                  </select>
+                </label>
+                <label class="case-select-wrap control-compact-wrap" for="weightModeSelect">
+                  <span class="case-select-label">Weight</span>
+                  <select id="weightModeSelect" class="case-select" name="weightMode">
+                    <option value="regular" selected>Regular</option>
+                    <option value="bold">Bold</option>
+                  </select>
+                </label>
+                <label class="case-select-wrap color-input-wrap" for="accentColorInput">
+                  <span class="case-select-label">Color</span>
+                  <input id="accentColorInput" class="color-input" name="accentColor" type="color" value="#01cdfe" />
+                </label>
+                <label class="depth-toggle" for="threeDModeInput">
+                  <input id="threeDModeInput" class="depth-toggle-input" name="threeDMode" type="checkbox" />
+                  <span class="depth-toggle-copy">
+                    <span class="case-select-label">Text depth</span>
+                    <span class="depth-toggle-title">3D left shade</span>
+                  </span>
+                </label>
+                <label class="size-input-wrap size-input-inline" for="gridWidthInput">
+                  <span class="case-select-label">Width</span>
+                  <input id="gridWidthInput" class="size-input" type="number" min="20" max="400" step="1" value="186" />
+                </label>
+                <label class="size-input-wrap size-input-inline" for="gridHeightInput">
+                  <span class="case-select-label">Height</span>
+                  <input id="gridHeightInput" class="size-input" type="number" min="8" max="120" step="1" value="24" />
+                </label>
+              </div>
+              <p class="control-card-note">Drag the grid corner or enter exact width and height.</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="control-footer">
+          <div class="control-card action-card">
+            <p class="section-label">Actions</p>
+            <div class="toolbar">
+              <button id="undoButton" class="action-button" type="button">Undo</button>
+              <button id="resetButton" class="action-button" type="button">Reset</button>
+              <button id="randomNoiseButton" class="action-button" type="button">Random Noise</button>
+              <button id="exportButton" class="action-button action-button-primary" type="button">Export SVG</button>
+            </div>
+            <div class="status-row">
+              <p id="paintStats" class="paint-stats" aria-live="polite"></p>
+              <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+          <div class="control-card legend-card">
+            <div class="legend" aria-label="Contribution level legend">
+              <p class="section-label">Levels</p>
+              <div id="legendSwatches" class="legend-swatches"></div>
+            </div>
+            <p class="help-inline">
+              Click cycles forward. Right-click steps back. <kbd>Shift</kbd> + click paints max. <kbd>Shift</kbd> +
+              right-click clears. Random Noise fills non-letter cells with a fresh background.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel editor-panel" aria-label="Contribution heatmap editor">
+        <div class="heatmap-frame">
+          <div id="heatmapArea" class="heatmap-area">
+            <div
+              id="grid"
+              class="grid"
+              role="grid"
+              aria-label="High-resolution contribution heatmap drawing grid"
+            ></div>
+            <button
+              id="resizeHandle"
+              class="resize-handle"
+              type="button"
+              aria-label="Resize grid by dragging"
+              title="Drag to resize grid"
+            ></button>
+          </div>
+        </div>
+        <p id="gridValidationMessage" class="grid-validation-message" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
