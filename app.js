@@ -986,7 +986,6 @@ function startStroke(mode) {
   activeStroke = {
     mode,
     changed: false,
-    visited: new Set(),
   };
 }
 
@@ -1044,8 +1043,7 @@ function applyAccentColor(nextColor, options = {}) {
 }
 
 function applyStroke(index) {
-  if (!activeStroke || activeStroke.visited.has(index)) return;
-  activeStroke.visited.add(index);
+  if (!activeStroke) return;
   const current = normalizeLevel(levels[index]);
   const next = nextLevelForMode(current, activeStroke.mode);
   if (next === current) return;
@@ -1076,7 +1074,7 @@ function finishStroke() {
 
 function nextLevelForMode(current, mode) {
   if (mode === "increment") {
-    return current >= MAX_LEVEL ? 0 : current + 1;
+    return Math.min(current + 1, MAX_LEVEL);
   }
   if (mode === "decrement") {
     return current <= 0 ? 0 : current - 1;
@@ -1860,9 +1858,6 @@ function escapeXml(value) {
 }
 
 function syncUi() {
-  const painted = levels.reduce((count, level) => count + (normalizeLevel(level) > 0 ? 1 : 0), 0);
-  const maxed = levels.reduce((count, level) => count + (normalizeLevel(level) === MAX_LEVEL ? 1 : 0), 0);
-  paintStats.textContent = `${painted} painted / ${totalCells()} cells · ${gridCols} x ${gridRows} · ${maxed} max intensity`;
   undoButton.disabled = undoStack.length === 0;
   resetButton.disabled = !canResetEditor();
 }
