@@ -101,15 +101,31 @@
                   <span class="case-select-label">Color</span>
                   <input id="accentColorInput" class="color-input" name="accentColor" type="color" value="#01cdfe" />
                 </label>
-                <label class="toggle-field field-block" for="threeDModeInput">
+                <div class="toggle-field field-block">
                   <span class="case-select-label">Text depth</span>
-                  <span class="depth-toggle">
-                    <input id="threeDModeInput" class="depth-toggle-input" name="threeDMode" type="checkbox" />
+                  <div id="depthControl" class="depth-toggle" role="group" aria-label="Adjust 3D text depth">
                     <span class="depth-toggle-copy">
                       <span class="depth-toggle-title">3D effect</span>
+                      <span id="depthStatusText" class="depth-toggle-value">Off</span>
                     </span>
-                  </span>
-                </label>
+                    <div class="depth-toggle-stepper size-stepper" role="group" aria-label="Adjust 3D depth">
+                      <button
+                        id="depthIncreaseButton"
+                        class="noise-step-button size-step-button"
+                        type="button"
+                        aria-label="Increase 3D depth"
+                        title="Increase 3D depth"
+                      ><span class="step-icon step-icon-up" aria-hidden="true"></span></button>
+                      <button
+                        id="depthDecreaseButton"
+                        class="noise-step-button size-step-button"
+                        type="button"
+                        aria-label="Decrease 3D depth"
+                        title="Decrease 3D depth"
+                      ><span class="step-icon step-icon-down" aria-hidden="true"></span></button>
+                    </div>
+                  </div>
+                </div>
                 <div class="canvas-field field-block" aria-label="Canvas size">
                   <div class="canvas-field-row">
                     <label class="size-input-wrap" for="gridWidthInput">

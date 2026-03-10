@@ -2,10 +2,13 @@ const DEFAULT_COLS = 185;
 const DEFAULT_ROWS = 30;
 const DEFAULT_FONT_MODE = "arial";
 const DEFAULT_WEIGHT_MODE = "regular";
+const DEFAULT_DEPTH_COLUMNS = 0;
 const MIN_COLS = 20;
 const MAX_COLS = 400;
 const MIN_ROWS = 8;
 const MAX_ROWS = 120;
+const MIN_DEPTH_COLUMNS = 0;
+const MAX_DEPTH_COLUMNS = 6;
 const MAX_LEVEL = 4;
 const BASE_NOISE_AMOUNT = 0;
 const INITIAL_NOISE_AMOUNT = -2;
@@ -26,6 +29,7 @@ const GLYPH_SPACING = 1;
 const TEXT_PADDING_X = 10;
 const TEXT_PADDING_Y = 3;
 const TEXT_RASTER_SCALE = 4;
+const TOUCH_RESIZE_STEP_MULTIPLIER = 1.35;
 const FONT_OPTIONS = Object.freeze({
   arial: Object.freeze({ label: "Arial", family: "Arial, Helvetica, sans-serif" }),
   "arial-black": Object.freeze({ label: "Arial Black", family: "\"Arial Black\", Gadget, sans-serif" }),
@@ -662,7 +666,9 @@ const textInput = document.getElementById("textInput");
 const fontModeSelect = document.getElementById("fontModeSelect");
 const weightModeSelect = document.getElementById("weightModeSelect");
 const accentColorInput = document.getElementById("accentColorInput");
-const threeDModeInput = document.getElementById("threeDModeInput");
+const depthStatusText = document.getElementById("depthStatusText");
+const depthIncreaseButton = document.getElementById("depthIncreaseButton");
+const depthDecreaseButton = document.getElementById("depthDecreaseButton");
 const gridWidthInput = document.getElementById("gridWidthInput");
 const gridHeightInput = document.getElementById("gridHeightInput");
 const gridWidthIncreaseButton = document.getElementById("gridWidthIncreaseButton");
@@ -710,12 +716,14 @@ let lastGeneratorFailure = "";
 let lastGeneratorLayout = null;
 let exportMenuOpen = false;
 let shouldSelectAllTextInputOnFocus = true;
+let depthColumns = DEFAULT_DEPTH_COLUMNS;
 
 renderLegend();
 renderGrid();
 renderAllCells();
 syncSizeInputs();
 syncAccentColorUi();
+syncDepthUi();
 syncUi();
 applyInitialTextFromUrl();
 
@@ -761,12 +769,13 @@ resetButton.addEventListener("click", () => {
   gridRows = DEFAULT_ROWS;
   fontModeSelect.value = DEFAULT_FONT_MODE;
   weightModeSelect.value = DEFAULT_WEIGHT_MODE;
-  threeDModeInput.checked = false;
+  depthColumns = DEFAULT_DEPTH_COLUMNS;
   accentColor = RUN_BLUE;
   levelColors = buildLevelColors(accentColor);
   noiseAmount = BASE_NOISE_AMOUNT;
   syncSizeInputs();
   syncAccentColorUi();
+  syncDepthUi();
   renderLegend();
   backgroundLevels = Array(totalCells()).fill(0);
   levels = Array(totalCells()).fill(0);
@@ -809,6 +818,14 @@ gridHeightIncreaseButton.addEventListener("click", () => {
 
 gridHeightDecreaseButton.addEventListener("click", () => {
   stepSizeInput(gridHeightInput, -1);
+});
+
+depthIncreaseButton.addEventListener("click", () => {
+  stepDepthInput(1);
+});
+
+depthDecreaseButton.addEventListener("click", () => {
+  stepDepthInput(-1);
 });
 
 exportButton.addEventListener("click", () => {
@@ -947,6 +964,10 @@ function normalizeNoiseAmount(value) {
   return number;
 }
 
+function normalizeDepthColumns(value) {
+  return clampInt(value, MIN_DEPTH_COLUMNS, MAX_DEPTH_COLUMNS, DEFAULT_DEPTH_COLUMNS);
+}
+
 function syncGridCssVars() {
   grid.style.setProperty("--grid-cols", String(gridCols));
   grid.style.setProperty("--grid-rows", String(gridRows));
@@ -955,6 +976,41 @@ function syncGridCssVars() {
 function syncSizeInputs() {
   gridWidthInput.value = String(gridCols);
   gridHeightInput.value = String(gridRows);
+}
+
+function currentDepthColumns() {
+  return normalizeDepthColumns(depthColumns);
+}
+
+function syncDepthUi() {
+  const normalizedDepth = currentDepthColumns();
+  depthColumns = normalizedDepth;
+  depthIncreaseButton.disabled = normalizedDepth >= MAX_DEPTH_COLUMNS;
+  depthDecreaseButton.disabled = normalizedDepth <= MIN_DEPTH_COLUMNS;
+  if (depthStatusText) {
+    depthStatusText.textContent = normalizedDepth <= 0 ? "Off" : String(normalizedDepth);
+    depthStatusText.classList.toggle("is-off", normalizedDepth <= 0);
+  }
+}
+
+function commitDepthValue(nextDepth) {
+  depthColumns = normalizeDepthColumns(nextDepth);
+  syncDepthUi();
+  scheduleAutoApply();
+}
+
+function stepDepthInput(direction) {
+  const nextDepth = clampInt(
+    currentDepthColumns() + direction,
+    MIN_DEPTH_COLUMNS,
+    MAX_DEPTH_COLUMNS,
+    DEFAULT_DEPTH_COLUMNS,
+  );
+  if (nextDepth === currentDepthColumns()) {
+    syncDepthUi();
+    return;
+  }
+  commitDepthValue(nextDepth);
 }
 
 function renderLegend() {
@@ -1168,7 +1224,7 @@ function canResetEditor() {
     || Boolean(normalizeGeneratorText(textInput.value))
     || fontModeSelect.value !== DEFAULT_FONT_MODE
     || weightModeSelect.value !== DEFAULT_WEIGHT_MODE
-    || Boolean(threeDModeInput.checked)
+    || currentDepthColumns() !== DEFAULT_DEPTH_COLUMNS
     || normalizeAccentColor(accentColor) !== RUN_BLUE;
 }
 
@@ -1183,7 +1239,7 @@ function generatorStateSignature() {
     text: normalizeGeneratorText(textInput.value),
     font: fontModeSelect.value,
     weightMode: weightModeSelect.value,
-    depth: Boolean(threeDModeInput.checked),
+    depth: currentDepthColumns(),
     cols: gridCols,
     rows: gridRows,
   });
@@ -1194,7 +1250,7 @@ function generatorContentSignature(rawText = textInput.value) {
     text: normalizeGeneratorText(rawText),
     font: fontModeSelect.value,
     weightMode: weightModeSelect.value,
-    depth: Boolean(threeDModeInput.checked),
+    depth: currentDepthColumns(),
   });
 }
 
@@ -1447,21 +1503,23 @@ function buildGeneratorPreview(rawText) {
     };
   }
   const text = normalizedText;
-  const enable3d = threeDModeInput.checked;
+  const depthColumns = currentDepthColumns();
+  const enable3d = depthColumns > 0;
+  const reservedShadeColumns = Math.max(depthColumns - 1, 0);
   const glyphSpacing = GLYPH_SPACING;
   const fontMode = fontModeSelect.value;
   const weightMode = weightModeSelect.value;
   const contentSignature = generatorContentSignature(normalizedText);
 
   const layout = fontMode === "pixel"
-    ? buildBitmapTextLevels(text, glyphSpacing, weightMode, contentSignature)
-    : buildFontTextLevels(text, fontMode, weightMode, contentSignature);
+    ? buildBitmapTextLevels(text, glyphSpacing, weightMode, reservedShadeColumns, contentSignature)
+    : buildFontTextLevels(text, fontMode, weightMode, reservedShadeColumns, contentSignature);
 
   if (!layout) {
     return null;
   }
 
-  const finalLevels = enable3d ? apply3dShade(layout.levels) : layout.levels;
+  const finalLevels = enable3d ? apply3dShade(layout.levels, depthColumns) : layout.levels;
   return {
     levels: finalLevels,
     mask: collectPaintedMask(finalLevels),
@@ -1686,6 +1744,7 @@ function beginResizeSession(event) {
   resizeSession = {
     startX: event.clientX,
     startY: event.clientY,
+    pointerType: event.pointerType || "",
     baseCols: gridCols,
     baseRows: gridRows,
     baseLevels: levels.slice(),
@@ -1702,8 +1761,11 @@ function beginResizeSession(event) {
 function updateResizeSession(event) {
   if (!resizeSession) return;
   const previewScale = getPreviewScale();
-  const colStep = (CELL_SIZE + CELL_GAP) * previewScale;
-  const rowStep = (CELL_SIZE + CELL_GAP) * previewScale;
+  const stepMultiplier = resizeSession.pointerType === "touch"
+    ? TOUCH_RESIZE_STEP_MULTIPLIER
+    : 1;
+  const colStep = (CELL_SIZE + CELL_GAP) * previewScale * stepMultiplier;
+  const rowStep = (CELL_SIZE + CELL_GAP) * previewScale * stepMultiplier;
   const deltaCols = Math.round((event.clientX - resizeSession.startX) / colStep);
   const deltaRows = Math.round((event.clientY - resizeSession.startY) / rowStep);
   const nextCols = resizeSession.baseCols + deltaCols;
@@ -1753,7 +1815,7 @@ function bindArrowStepSelect(select) {
   });
 }
 
-function computeBitmapTextLayout(text, glyphSpacing, weightMode, padding, maxScale = Number.POSITIVE_INFINITY) {
+function computeBitmapTextLayout(text, glyphSpacing, weightMode, shadeReserveCols, padding, maxScale = Number.POSITIVE_INFINITY) {
   const unsupported = Array.from(new Set(
     Array.from(text).filter((character) => !resolveGlyph(character)),
   ));
@@ -1776,7 +1838,7 @@ function computeBitmapTextLayout(text, glyphSpacing, weightMode, padding, maxSca
   ), 0);
   const totalGapWidth = Math.max(0, glyphEntries.length - 1) * glyphSpacing;
   const scale = Math.floor(Math.min(
-    (gridCols - (padding.x * 2) - totalGapWidth) / Math.max(scaledGlyphWidth, 1),
+    (gridCols - (padding.x * 2) - totalGapWidth - shadeReserveCols) / Math.max(scaledGlyphWidth, 1),
     (gridRows - (padding.y * 2)) / GLYPH_SIZE,
     maxScale,
   ));
@@ -1788,10 +1850,11 @@ function computeBitmapTextLayout(text, glyphSpacing, weightMode, padding, maxSca
   const glyphWidth = glyphEntries.reduce((total, entry, index) => (
     total + (entry.bounds.width * scale) + (index > 0 ? glyphSpacing : 0)
   ), 0);
+  const layoutWidth = glyphWidth + shadeReserveCols;
   const offsetY = Math.floor((gridRows - glyphHeight) / 2);
-  const offsetX = Math.floor((gridCols - glyphWidth) / 2);
+  const offsetX = Math.floor((gridCols - layoutWidth) / 2);
   const nextLevels = Array(totalCells()).fill(0);
-  let cursorX = offsetX;
+  let cursorX = offsetX + shadeReserveCols;
 
   glyphEntries.forEach((entry, characterIndex) => {
     const { glyph, bounds } = entry;
@@ -1822,9 +1885,9 @@ function computeBitmapTextLayout(text, glyphSpacing, weightMode, padding, maxSca
   };
 }
 
-function buildBitmapTextLevels(text, glyphSpacing, weightMode, contentSignature) {
+function buildBitmapTextLevels(text, glyphSpacing, weightMode, shadeReserveCols, contentSignature) {
   const layout = chooseAdaptiveLayout(
-    (padding, maxScale) => computeBitmapTextLayout(text, glyphSpacing, weightMode, padding, maxScale),
+    (padding, maxScale) => computeBitmapTextLayout(text, glyphSpacing, weightMode, shadeReserveCols, padding, maxScale),
     contentSignature,
   );
   if (!layout) {
@@ -1870,7 +1933,7 @@ function renderDeterministicGlyphRun(ctx, text, originX, baselineY) {
   });
 }
 
-function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize = Number.POSITIVE_INFINITY) {
+function computeFontTextLayout(text, fontMode, weightMode, shadeReserveCols, padding, maxFontSize = Number.POSITIVE_INFINITY) {
   const option = FONT_OPTIONS[fontMode] || FONT_OPTIONS.arial;
   const fontWeight = weightMode === "bold" ? 700 : 400;
   const alphaThreshold = weightMode === "bold" ? 80 : 64;
@@ -1894,6 +1957,7 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
   const availableHeightPx = availableHeight * TEXT_RASTER_SCALE;
   const padLeftPx = padding.x * TEXT_RASTER_SCALE;
   const padTopPx = padding.y * TEXT_RASTER_SCALE;
+  const reservePx = shadeReserveCols * TEXT_RASTER_SCALE;
 
   let low = 1;
   let high = availableHeightPx * 2;
@@ -1909,7 +1973,7 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
     ctx.font = `${fontWeight} ${fontSize}px ${option.family}`;
     const metrics = ctx.measureText(text);
     const { width, height } = measureTextCoverage(metrics);
-    if (width <= availableWidthPx && height <= availableHeightPx) {
+    if ((width + reservePx) <= availableWidthPx && height <= availableHeightPx) {
       bestSize = fontSize;
       bestMetrics = metrics;
       low = fontSize + 1;
@@ -1930,13 +1994,14 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
   const { height: textHeight } = measureTextCoverage(bestMetrics);
   const textAdvance = measureTextAdvance(bestMetrics);
   const centerX = padLeftPx + Math.floor(availableWidthPx / 2);
+  const textCenterX = centerX + (reservePx / 2);
   const baselineY = padTopPx + Math.floor((availableHeightPx - textHeight) / 2) + Math.ceil(bestMetrics.actualBoundingBoxAscent);
   if (canUseDeterministicGlyphPlacement(option)) {
     ctx.textAlign = "left";
-    renderDeterministicGlyphRun(ctx, text, centerX - (snapToRaster(textAdvance) / 2), baselineY);
+    renderDeterministicGlyphRun(ctx, text, textCenterX - (snapToRaster(textAdvance) / 2), baselineY);
   } else {
     ctx.textAlign = "center";
-    ctx.fillText(text, centerX, baselineY);
+    ctx.fillText(text, textCenterX, baselineY);
   }
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -1967,9 +2032,9 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
   };
 }
 
-function buildFontTextLevels(text, fontMode, weightMode, contentSignature) {
+function buildFontTextLevels(text, fontMode, weightMode, shadeReserveCols, contentSignature) {
   const layout = chooseAdaptiveLayout(
-    (padding, maxFontSize) => computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize),
+    (padding, maxFontSize) => computeFontTextLayout(text, fontMode, weightMode, shadeReserveCols, padding, maxFontSize),
     contentSignature,
   );
   if (!layout) {
@@ -1978,9 +2043,10 @@ function buildFontTextLevels(text, fontMode, weightMode, contentSignature) {
   return layout;
 }
 
-function apply3dShade(sourceLevels) {
+function apply3dShade(sourceLevels, depthColumns = DEFAULT_DEPTH_COLUMNS) {
   const shadedLevels = sourceLevels.slice();
   const mainPixels = new Set();
+  const shadeDepth = normalizeDepthColumns(depthColumns);
 
   sourceLevels.forEach((level, index) => {
     if (normalizeLevel(level) === TEXT_LEVEL) {
@@ -1991,11 +2057,13 @@ function apply3dShade(sourceLevels) {
   mainPixels.forEach((linearIndex) => {
     const gridCol = Math.floor(linearIndex / gridRows);
     const gridRow = linearIndex % gridRows;
-    const shadeCol = gridCol - 1;
-    if (shadeCol < 0) return;
-    const shadeIndex = cellIndex(shadeCol, gridRow);
-    if (mainPixels.has(shadeIndex)) return;
-    shadedLevels[shadeIndex] = Math.max(shadedLevels[shadeIndex], SHADE_LEVEL);
+    for (let offset = 1; offset <= shadeDepth; offset += 1) {
+      const shadeCol = gridCol - offset;
+      if (shadeCol < 0) break;
+      const shadeIndex = cellIndex(shadeCol, gridRow);
+      if (mainPixels.has(shadeIndex)) break;
+      shadedLevels[shadeIndex] = Math.max(shadedLevels[shadeIndex], SHADE_LEVEL);
+    }
   });
 
   return shadedLevels;
@@ -2237,12 +2305,21 @@ function applyInitialTextFromUrl() {
   if (initialWeight === "regular" || initialWeight === "bold") {
     weightModeSelect.value = initialWeight;
   }
-  if (initialDepth === "1" || initialDepth === "true" || initialDepth === "yes") {
-    threeDModeInput.checked = true;
+  if (initialDepth) {
+    const normalizedDepth = initialDepth.trim().toLowerCase();
+    const parsedDepth = Number.parseInt(initialDepth, 10);
+    if (Number.isFinite(parsedDepth)) {
+      depthColumns = normalizeDepthColumns(parsedDepth);
+    } else if (normalizedDepth === "true" || normalizedDepth === "yes" || normalizedDepth === "on") {
+      depthColumns = 1;
+    } else if (normalizedDepth === "false" || normalizedDepth === "no" || normalizedDepth === "off") {
+      depthColumns = 0;
+    }
   }
   if (initialColor) {
     applyAccentColor(initialColor, { skipStatus: true });
   }
+  syncDepthUi();
   const initialCols = params.get("cols");
   const initialRows = params.get("rows");
   if (initialCols || initialRows) {
@@ -2330,11 +2407,6 @@ accentColorInput.addEventListener("input", () => {
 
 accentColorInput.addEventListener("change", () => {
   applyAccentColor(accentColorInput.value);
-});
-
-threeDModeInput.addEventListener("change", () => {
-  syncUi();
-  scheduleAutoApply();
 });
 
 bindArrowStepSelect(fontModeSelect);
