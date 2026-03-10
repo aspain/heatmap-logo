@@ -709,6 +709,7 @@ let resizeSession = null;
 let lastGeneratorFailure = "";
 let lastGeneratorLayout = null;
 let exportMenuOpen = false;
+let shouldSelectAllTextInputOnFocus = true;
 
 renderLegend();
 renderGrid();
@@ -1856,13 +1857,14 @@ function canUseDeterministicGlyphPlacement(option) {
 
 function renderDeterministicGlyphRun(ctx, text, originX, baselineY) {
   const characters = Array.from(text);
+  const snappedOriginX = snapToRaster(originX);
   let prefixText = "";
 
   characters.forEach((character) => {
     const advanceBefore = prefixText
       ? measureTextAdvance(ctx.measureText(prefixText))
       : 0;
-    const drawX = snapToRaster(originX + advanceBefore);
+    const drawX = snappedOriginX + snapToRaster(advanceBefore);
     ctx.fillText(character, drawX, baselineY);
     prefixText += character;
   });
@@ -1931,7 +1933,7 @@ function computeFontTextLayout(text, fontMode, weightMode, padding, maxFontSize 
   const baselineY = padTopPx + Math.floor((availableHeightPx - textHeight) / 2) + Math.ceil(bestMetrics.actualBoundingBoxAscent);
   if (canUseDeterministicGlyphPlacement(option)) {
     ctx.textAlign = "left";
-    renderDeterministicGlyphRun(ctx, text, centerX - (textAdvance / 2), baselineY);
+    renderDeterministicGlyphRun(ctx, text, centerX - (snapToRaster(textAdvance) / 2), baselineY);
   } else {
     ctx.textAlign = "center";
     ctx.fillText(text, centerX, baselineY);
@@ -2265,14 +2267,29 @@ function selectAllTextInput() {
 }
 
 textInput.addEventListener("pointerdown", (event) => {
+  if (document.activeElement === textInput) {
+    return;
+  }
   event.preventDefault();
+  shouldSelectAllTextInputOnFocus = true;
   selectAllTextInput();
 });
 
 textInput.addEventListener("focus", () => {
+  if (!shouldSelectAllTextInputOnFocus) {
+    return;
+  }
+  shouldSelectAllTextInputOnFocus = false;
   window.setTimeout(() => {
+    if (document.activeElement !== textInput) {
+      return;
+    }
     textInput.setSelectionRange(0, textInput.value.length);
   }, 0);
+});
+
+textInput.addEventListener("blur", () => {
+  shouldSelectAllTextInputOnFocus = true;
 });
 
 textInput.addEventListener("input", () => {
