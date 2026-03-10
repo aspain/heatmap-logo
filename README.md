@@ -2,8 +2,6 @@
   <img src="./assets/heatmap-logo-readme.svg" alt="heatmap-logo" />
 </p>
 
-# heatmap-logo
-
 heatmap-logo is a browser tool for creating GitHub contribution graph-style text logos. Type your text, adjust the grid, clean up cells by hand if needed, and export the result as SVG.
 
 - Generate heatmap-style text with font, color, weight, and canvas controls
