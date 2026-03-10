@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1280, initial-scale=1.0" />
+    <title>heatmap-logo social preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(7, 16, 31, 0.9);
+        --border: rgba(59, 130, 246, 0.12);
+        --text: #dbe7f3;
+        --muted: #9fb8d1;
+        --accent: #38bdf8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 640px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 22%, rgba(14, 165, 233, 0.2), transparent 32%),
+          radial-gradient(circle at 76% 74%, rgba(56, 189, 248, 0.24), transparent 28%),
+          linear-gradient(130deg, #020617 0%, #061325 44%, #08172f 100%);
+        color: var(--text);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px);
+        background-size: 24px 24px;
+        opacity: 0.32;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 92%);
+      }
+
+      .frame {
+        position: relative;
+        inset: 40px;
+        width: calc(100% - 80px);
+        height: calc(100% - 80px);
+        border-radius: 30px;
+        border: 1px solid var(--border);
+        background:
+          linear-gradient(180deg, rgba(8, 23, 47, 0.9), rgba(5, 15, 30, 0.88)),
+          var(--panel);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.04),
+          0 30px 80px rgba(2, 6, 23, 0.45);
+      }
+
+      .chip {
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 14px 18px;
+        border-radius: 999px;
+        border: 1px solid rgba(14, 165, 233, 0.28);
+        background: rgba(2, 6, 23, 0.38);
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .content {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 120px 88px 88px;
+      }
+
+      .stack {
+        display: grid;
+        justify-items: center;
+        gap: 34px;
+      }
+
+      .logo-wrap {
+        width: 100%;
+        display: grid;
+        place-items: center;
+      }
+
+      .logo-panel {
+        width: 100%;
+        display: grid;
+        place-items: center;
+        padding: 28px 40px;
+        border-radius: 28px;
+        border: 1px solid rgba(56, 189, 248, 0.12);
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0.62), rgba(8, 23, 47, 0.28));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.03),
+          0 24px 60px rgba(2, 6, 23, 0.32);
+      }
+
+      .logo {
+        width: min(100%, 1040px);
+        height: auto;
+        filter:
+          drop-shadow(0 22px 48px rgba(8, 145, 178, 0.22))
+          drop-shadow(0 6px 14px rgba(2, 6, 23, 0.42));
+      }
+
+      .tagline {
+        max-width: 980px;
+        margin: 0;
+        text-align: center;
+        color: var(--text);
+        font-size: 32px;
+        font-weight: 600;
+        line-height: 1.16;
+        letter-spacing: -0.03em;
+        text-wrap: balance;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="frame">
+      <div class="chip">Live editing + SVG export</div>
+      <div class="content">
+        <div class="stack">
+          <div class="logo-wrap">
+            <div class="logo-panel">
+              <img class="logo" src="./heatmap-logo.svg" alt="heatmap-logo logo" />
+            </div>
+          </div>
+          <p class="tagline">Generate heatmap-style logos.</p>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
