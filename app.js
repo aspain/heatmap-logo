@@ -7,6 +7,9 @@ const MAX_COLS = 400;
 const MIN_ROWS = 8;
 const MAX_ROWS = 120;
 const MAX_LEVEL = 4;
+const BASE_NOISE_AMOUNT = 0;
+const INITIAL_NOISE_AMOUNT = -2;
+const NOISE_AMOUNT_STEP = 0.08;
 const STORAGE_KEY = "heatmap-logo.builder.v1";
 const CELL_SIZE = 4;
 const CELL_GAP = 1;
@@ -662,9 +665,15 @@ const accentColorInput = document.getElementById("accentColorInput");
 const threeDModeInput = document.getElementById("threeDModeInput");
 const gridWidthInput = document.getElementById("gridWidthInput");
 const gridHeightInput = document.getElementById("gridHeightInput");
+const gridWidthIncreaseButton = document.getElementById("gridWidthIncreaseButton");
+const gridWidthDecreaseButton = document.getElementById("gridWidthDecreaseButton");
+const gridHeightIncreaseButton = document.getElementById("gridHeightIncreaseButton");
+const gridHeightDecreaseButton = document.getElementById("gridHeightDecreaseButton");
 const undoButton = document.getElementById("undoButton");
 const resetButton = document.getElementById("resetButton");
 const randomNoiseButton = document.getElementById("randomNoiseButton");
+const noiseIncreaseButton = document.getElementById("noiseIncreaseButton");
+const noiseDecreaseButton = document.getElementById("noiseDecreaseButton");
 const exportSplit = document.getElementById("exportSplit");
 const exportButton = document.getElementById("exportButton");
 const exportMenuButton = document.getElementById("exportMenuButton");
@@ -677,6 +686,8 @@ const gridValidationMessage = document.getElementById("gridValidationMessage");
 const legendSwatches = document.getElementById("legendSwatches");
 const grid = document.getElementById("grid");
 const resizeHandle = document.getElementById("resizeHandle");
+const editorPanel = document.querySelector(".editor-panel");
+const heatmapFrame = document.querySelector(".heatmap-frame");
 
 const loadedState = loadState();
 let gridCols = loadedState.cols;
@@ -685,6 +696,7 @@ let levels = loadedState.levels;
 let backgroundLevels = loadedState.backgroundLevels;
 let currentGeneratorMask = loadedState.generatorMask;
 let noiseSeed = loadedState.noiseSeed;
+let noiseAmount = normalizeNoiseAmount(loadedState.noiseAmount);
 let accentColor = loadedState.accentColor;
 let levelColors = buildLevelColors(accentColor);
 let undoStack = [];
@@ -723,6 +735,7 @@ window.addEventListener("pointercancel", endResizeSession);
 window.addEventListener("blur", endResizeSession);
 window.addEventListener("keydown", handleExportMenuKeydown);
 window.addEventListener("pointerdown", handleExportMenuPointerdown);
+window.addEventListener("resize", syncPreviewScale);
 
 resizeHandle.addEventListener("pointerdown", beginResizeSession);
 
@@ -750,6 +763,7 @@ resetButton.addEventListener("click", () => {
   threeDModeInput.checked = false;
   accentColor = RUN_BLUE;
   levelColors = buildLevelColors(accentColor);
+  noiseAmount = BASE_NOISE_AMOUNT;
   syncSizeInputs();
   syncAccentColorUi();
   renderLegend();
@@ -770,6 +784,30 @@ resetButton.addEventListener("click", () => {
 
 randomNoiseButton.addEventListener("click", () => {
   applyRandomNoise();
+});
+
+noiseIncreaseButton.addEventListener("click", () => {
+  adjustNoiseAmount(1);
+});
+
+noiseDecreaseButton.addEventListener("click", () => {
+  adjustNoiseAmount(-1);
+});
+
+gridWidthIncreaseButton.addEventListener("click", () => {
+  stepSizeInput(gridWidthInput, 1);
+});
+
+gridWidthDecreaseButton.addEventListener("click", () => {
+  stepSizeInput(gridWidthInput, -1);
+});
+
+gridHeightIncreaseButton.addEventListener("click", () => {
+  stepSizeInput(gridHeightInput, 1);
+});
+
+gridHeightDecreaseButton.addEventListener("click", () => {
+  stepSizeInput(gridHeightInput, -1);
 });
 
 exportButton.addEventListener("click", () => {
@@ -896,9 +934,16 @@ function snapshotState() {
     backgroundLevels: backgroundLevels.slice(),
     generatorMask: currentGeneratorMask.slice(),
     noiseSeed,
+    noiseAmount,
     accentColor,
     lastRenderedFromGenerator,
   };
+}
+
+function normalizeNoiseAmount(value) {
+  const number = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(number)) return BASE_NOISE_AMOUNT;
+  return number;
 }
 
 function syncGridCssVars() {
@@ -932,6 +977,7 @@ function renderLegend() {
 function renderGrid() {
   grid.innerHTML = "";
   syncGridCssVars();
+  syncPreviewScale();
   for (let index = 0; index < totalCells(); index += 1) {
     const cell = document.createElement("button");
     const row = index % gridRows;
@@ -1024,6 +1070,7 @@ function restoreSnapshot(snapshot) {
     : resizeLevelsFromBase(snapshot.backgroundLevels || [], cols, rows, cols, rows);
   currentGeneratorMask = normalizeMask(snapshot.generatorMask, totalCells(cols, rows));
   noiseSeed = Number.isFinite(snapshot.noiseSeed) ? Number(snapshot.noiseSeed) : 0;
+  noiseAmount = normalizeNoiseAmount(snapshot.noiseAmount);
   accentColor = normalizeAccentColor(snapshot.accentColor);
   levelColors = buildLevelColors(accentColor);
   lastGeneratorLayout = null;
@@ -1222,7 +1269,15 @@ function noiseLevelFromRoll(roll) {
   return 4;
 }
 
-function buildNoiseLevels(seed, cols = gridCols, rows = gridRows) {
+function clamp01(value) {
+  return Math.min(Math.max(value, 0), 1);
+}
+
+function adjustedNoiseRoll(roll, amount = noiseAmount) {
+  return clamp01(roll + ((normalizeNoiseAmount(amount) - BASE_NOISE_AMOUNT) * NOISE_AMOUNT_STEP));
+}
+
+function buildNoiseLevels(seed, amount = noiseAmount, cols = gridCols, rows = gridRows) {
   const nextLevels = Array(totalCells(cols, rows)).fill(0);
   if (!seed) {
     return nextLevels;
@@ -1230,11 +1285,32 @@ function buildNoiseLevels(seed, cols = gridCols, rows = gridRows) {
 
   for (let col = 0; col < cols; col += 1) {
     for (let row = 0; row < rows; row += 1) {
-      nextLevels[cellIndex(col, row, rows)] = noiseLevelFromRoll(seededNoiseValue(col, row, seed));
+      const roll = adjustedNoiseRoll(seededNoiseValue(col, row, seed), amount);
+      nextLevels[cellIndex(col, row, rows)] = noiseLevelFromRoll(roll);
     }
   }
 
   return nextLevels;
+}
+
+function areLevelArraysEqual(left, right) {
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+    return false;
+  }
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function canAdjustNoise(direction) {
+  if (!noiseSeed) {
+    return direction > 0;
+  }
+  const nextBackgroundLevels = buildNoiseLevels(noiseSeed, noiseAmount + direction, gridCols, gridRows);
+  return !areLevelArraysEqual(backgroundLevels, nextBackgroundLevels);
 }
 
 function defaultTextPadding() {
@@ -1314,7 +1390,7 @@ function chooseAdaptiveLayout(buildWithPadding, contentSignature) {
 
 function refreshBackgroundLevels() {
   if (noiseSeed) {
-    backgroundLevels = buildNoiseLevels(noiseSeed, gridCols, gridRows);
+    backgroundLevels = buildNoiseLevels(noiseSeed, noiseAmount, gridCols, gridRows);
     return;
   }
   if (!Array.isArray(backgroundLevels) || backgroundLevels.length !== totalCells()) {
@@ -1397,7 +1473,7 @@ function buildGeneratorPreview(rawText) {
   };
 }
 
-function applyRandomNoise() {
+function resolveCurrentNoisePreview() {
   finishStroke();
   clearGeneratorFailure();
   const normalizedText = normalizeGeneratorText(textInput.value);
@@ -1415,13 +1491,20 @@ function applyRandomNoise() {
     } else {
       setGridValidationError("Text does not fit in the current grid. Increase width or height, or shorten the text.");
     }
-    return;
+    return null;
   }
+  return preview;
+}
 
-  pushUndoSnapshot();
+function applyNoiseFromSeed(seed, options = {}) {
+  const preview = resolveCurrentNoisePreview();
+  if (!preview) return false;
+  if (!options.skipUndo) {
+    pushUndoSnapshot();
+  }
   clearGridValidationError();
-  noiseSeed = randomSeed();
-  backgroundLevels = buildNoiseLevels(noiseSeed, gridCols, gridRows);
+  noiseSeed = seed;
+  backgroundLevels = buildNoiseLevels(noiseSeed, noiseAmount, gridCols, gridRows);
   levels = composeLevels(preview);
   currentGeneratorMask = preview.mask.slice();
   lastGeneratorLayout = preview.layoutMeta || null;
@@ -1429,6 +1512,44 @@ function applyRandomNoise() {
   persistLevels();
   renderAllCells();
   syncUi();
+  if (!options.skipStatus) {
+    clearStatusMessage();
+  }
+  return true;
+}
+
+function applyRandomNoise() {
+  if (!noiseSeed) {
+    noiseAmount = BASE_NOISE_AMOUNT;
+  }
+  applyNoiseFromSeed(randomSeed());
+}
+
+function adjustNoiseAmount(direction) {
+  if (!noiseSeed) {
+    if (direction > 0) {
+      noiseAmount = INITIAL_NOISE_AMOUNT;
+      applyNoiseFromSeed(randomSeed());
+      return;
+    }
+    syncUi();
+    return;
+  }
+
+  const nextAmount = noiseAmount + direction;
+  const nextBackgroundLevels = buildNoiseLevels(noiseSeed, nextAmount, gridCols, gridRows);
+  if (areLevelArraysEqual(backgroundLevels, nextBackgroundLevels)) {
+    syncUi();
+    return;
+  }
+
+  pushUndoSnapshot();
+  noiseAmount = nextAmount;
+  const applied = applyNoiseFromSeed(noiseSeed, { skipUndo: true, skipStatus: true });
+  if (!applied) {
+    restoreSnapshot(undoStack.pop());
+    return;
+  }
   clearStatusMessage();
 }
 
@@ -1510,7 +1631,7 @@ function applyGridResize(nextCols, nextRows, options = {}) {
     lastAutoApplySignature = "";
     noiseSeed = baseNoiseSeed;
     backgroundLevels = baseNoiseSeed
-      ? buildNoiseLevels(baseNoiseSeed, gridCols, gridRows)
+      ? buildNoiseLevels(baseNoiseSeed, noiseAmount, gridCols, gridRows)
       : resizeLevelsFromBase(baseBackgroundLevels, baseCols, baseRows, gridCols, gridRows);
     levels = Array(totalCells()).fill(0);
     currentGeneratorMask = [];
@@ -1519,7 +1640,7 @@ function applyGridResize(nextCols, nextRows, options = {}) {
   } else {
     noiseSeed = baseNoiseSeed;
     backgroundLevels = baseNoiseSeed
-      ? buildNoiseLevels(baseNoiseSeed, gridCols, gridRows)
+      ? buildNoiseLevels(baseNoiseSeed, noiseAmount, gridCols, gridRows)
       : resizeLevelsFromBase(baseBackgroundLevels, baseCols, baseRows, gridCols, gridRows);
     levels = baseNoiseSeed
       ? backgroundLevels.slice()
@@ -1544,6 +1665,21 @@ function commitSizeInputs() {
   applyGridResize(nextCols, nextRows, { skipStatus: false });
 }
 
+function stepSizeInput(input, direction) {
+  const currentValue = Number.parseInt(input.value, 10);
+  const fallback = input === gridWidthInput ? gridCols : gridRows;
+  const min = Number.parseInt(input.min, 10);
+  const max = Number.parseInt(input.max, 10);
+  const nextValue = clampInt(
+    (Number.isFinite(currentValue) ? currentValue : fallback) + direction,
+    Number.isFinite(min) ? min : fallback,
+    Number.isFinite(max) ? max : fallback,
+    fallback,
+  );
+  input.value = String(nextValue);
+  commitSizeInputs();
+}
+
 function beginResizeSession(event) {
   event.preventDefault();
   resizeSession = {
@@ -1564,8 +1700,9 @@ function beginResizeSession(event) {
 
 function updateResizeSession(event) {
   if (!resizeSession) return;
-  const colStep = CELL_SIZE + CELL_GAP;
-  const rowStep = CELL_SIZE + CELL_GAP;
+  const previewScale = getPreviewScale();
+  const colStep = (CELL_SIZE + CELL_GAP) * previewScale;
+  const rowStep = (CELL_SIZE + CELL_GAP) * previewScale;
   const deltaCols = Math.round((event.clientX - resizeSession.startX) / colStep);
   const deltaRows = Math.round((event.clientY - resizeSession.startY) / rowStep);
   const nextCols = resizeSession.baseCols + deltaCols;
@@ -1976,6 +2113,7 @@ function loadState() {
     backgroundLevels: Array(totalCells(DEFAULT_COLS, DEFAULT_ROWS)).fill(0),
     generatorMask: [],
     noiseSeed: 0,
+    noiseAmount: BASE_NOISE_AMOUNT,
     accentColor: RUN_BLUE,
     lastRenderedFromGenerator: false,
   };
@@ -1985,6 +2123,28 @@ function buildExportDimensions() {
   const width = GRID_PAD.left + GRID_PAD.right + (gridCols * CELL_SIZE) + ((gridCols - 1) * CELL_GAP);
   const height = GRID_PAD.top + GRID_PAD.bottom + (gridRows * CELL_SIZE) + ((gridRows - 1) * CELL_GAP);
   return { width, height };
+}
+
+function getPreviewScale() {
+  const scale = Number.parseFloat(getComputedStyle(heatmapFrame).getPropertyValue("--heatmap-preview-scale"));
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
+function syncPreviewScale() {
+  if (!editorPanel || !heatmapFrame) return;
+  const compactLayout = window.matchMedia("(max-width: 720px)").matches;
+  if (!compactLayout) {
+    heatmapFrame.style.setProperty("--heatmap-preview-scale", "1");
+    return;
+  }
+
+  const { width: gridWidth } = buildExportDimensions();
+  const panelStyles = getComputedStyle(editorPanel);
+  const horizontalPadding = Number.parseFloat(panelStyles.paddingLeft) + Number.parseFloat(panelStyles.paddingRight);
+  const availableWidth = Math.max(editorPanel.clientWidth - horizontalPadding - 2, 0);
+  const frameWidth = gridWidth + 18;
+  const scale = frameWidth > 0 ? Math.min(1, availableWidth / frameWidth) : 1;
+  heatmapFrame.style.setProperty("--heatmap-preview-scale", String(Math.max(scale, 0.01)));
 }
 
 function buildSvg() {
@@ -2022,6 +2182,9 @@ function escapeXml(value) {
 function syncUi() {
   undoButton.disabled = undoStack.length === 0;
   resetButton.disabled = false;
+  randomNoiseButton.setAttribute("aria-label", "Add random commits");
+  noiseIncreaseButton.disabled = !canAdjustNoise(1);
+  noiseDecreaseButton.disabled = !canAdjustNoise(-1);
 }
 
 function flashStatus(message) {

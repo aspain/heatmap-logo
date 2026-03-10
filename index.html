@@ -32,7 +32,7 @@
     <main class="app">
       <section class="panel intro-panel">
         <h1>heatmap-logo</h1>
-        <p class="intro-copy">Generate GitHub contribution heatmap-style logos from text, mouse drawing, or both.</p>
+        <p class="intro-copy">Generate heatmap-style logos from text, mouse drawing, or both.</p>
       </section>
 
       <section class="panel control-panel" aria-label="Editor controls">
@@ -41,7 +41,7 @@
             <div class="control-card control-card-main">
               <div class="control-matrix" aria-label="Style and canvas controls">
                 <label class="control-stack control-stack-text field-block" for="textInput">
-                  <span class="section-label">Text</span>
+                  <span class="case-select-label">Text</span>
                   <input
                     id="textInput"
                     class="text-input"
@@ -114,17 +114,71 @@
                   <div class="canvas-field-row">
                     <label class="size-input-wrap" for="gridWidthInput">
                       <span class="case-select-label">Width</span>
-                      <input id="gridWidthInput" class="size-input" type="number" min="20" max="400" step="1" value="185" />
+                      <div class="size-input-shell">
+                        <input id="gridWidthInput" class="size-input" type="number" min="20" max="400" step="1" value="185" />
+                        <div class="size-stepper" role="group" aria-label="Adjust width">
+                          <button
+                            id="gridWidthIncreaseButton"
+                            class="noise-step-button size-step-button"
+                            type="button"
+                            aria-label="Increase width"
+                            title="Increase width"
+                          >&utrif;</button>
+                          <button
+                            id="gridWidthDecreaseButton"
+                            class="noise-step-button size-step-button"
+                            type="button"
+                            aria-label="Decrease width"
+                            title="Decrease width"
+                          >&dtrif;</button>
+                        </div>
+                      </div>
                     </label>
                     <label class="size-input-wrap" for="gridHeightInput">
                       <span class="case-select-label">Height</span>
-                      <input id="gridHeightInput" class="size-input" type="number" min="8" max="120" step="1" value="30" />
+                      <div class="size-input-shell">
+                        <input id="gridHeightInput" class="size-input" type="number" min="8" max="120" step="1" value="30" />
+                        <div class="size-stepper" role="group" aria-label="Adjust height">
+                          <button
+                            id="gridHeightIncreaseButton"
+                            class="noise-step-button size-step-button"
+                            type="button"
+                            aria-label="Increase height"
+                            title="Increase height"
+                          >&utrif;</button>
+                          <button
+                            id="gridHeightDecreaseButton"
+                            class="noise-step-button size-step-button"
+                            type="button"
+                            aria-label="Decrease height"
+                            title="Decrease height"
+                          >&dtrif;</button>
+                        </div>
+                      </div>
                     </label>
                   </div>
                 </div>
                 <button id="undoButton" class="action-button field-action" type="button" disabled>Undo</button>
                 <button id="resetButton" class="action-button field-action" type="button">Reset</button>
-                <button id="randomNoiseButton" class="action-button field-action" type="button">Add Commits</button>
+                <div id="randomNoiseSplit" class="noise-split field-action">
+                  <button id="randomNoiseButton" class="action-button noise-button-main" type="button">Add Commits</button>
+                  <div class="noise-stepper" role="group" aria-label="Adjust random commit amount">
+                    <button
+                      id="noiseIncreaseButton"
+                      class="noise-step-button"
+                      type="button"
+                      aria-label="Increase random commit amount"
+                      title="Increase random commit amount"
+                    >&utrif;</button>
+                    <button
+                      id="noiseDecreaseButton"
+                      class="noise-step-button"
+                      type="button"
+                      aria-label="Decrease random commit amount"
+                      title="Decrease random commit amount"
+                    >&dtrif;</button>
+                  </div>
+                </div>
                 <div id="exportSplit" class="export-split field-action">
                   <button id="exportButton" class="action-button action-button-primary export-button-main" type="button">Export SVG</button>
                   <button
