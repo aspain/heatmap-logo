@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/heatmap-logo.svg" alt="heatmap-logo" />
+  <img src="./assets/heatmap-logo-readme.svg" alt="heatmap-logo" />
 </p>
 
 # heatmap-logo
