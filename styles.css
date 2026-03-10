@@ -56,9 +56,7 @@ body {
   display: grid;
   align-content: center;
   color: var(--text);
-  background:
-    radial-gradient(circle at top, rgba(1, 205, 254, 0.18), transparent 28%),
-    linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background: var(--bg);
   font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
 }
 
