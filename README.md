@@ -12,4 +12,5 @@ heatmap-logo is a browser tool for creating GitHub contribution graph-style text
 
 Try the [live tool](https://adamspain.com/heatmap-logo/).
 
+**Preview:**
 ![heatmap-logo app screenshot](./assets/heatmap-logo-readme-preview.png)
